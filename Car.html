@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Car Reservation System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-hover': '#4F4ED0',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .time-slot {
+            transition: all 0.2s ease;
+        }
+        .time-slot:hover {
+            transform: translateY(-1px);
+        }
+        .unavailable {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+        .calendar-day:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 min-h-screen">
+    <script>
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">🚗 Company Car Reservation</h1>
+            <p class="text-gray-600 dark:text-gray-400">Reserve one of our 3 company cars for your business needs</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">3</div>
+                <div class="text-sm text-blue-600 dark:text-blue-400">Available Cars</div>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400" id="totalReservations">0</div>
+                <div class="text-sm text-green-600 dark:text-green-400">Total Reservations</div>
+            </div>
+            <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                <div class="text-2xl font-bold text-purple-600 dark:text-purple-400" id="todayReservations">0</div>
+                <div class="text-sm text-purple-600 dark:text-purple-400">Today's Reservations</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Reservation Form -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">📅 Make a Reservation</h2>
+                
+                <form id="reservationForm" class="space-y-6">
+                    <!-- User Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Employee Name</label>
+                            <input type="text" id="employeeName" required 
+                                class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                placeholder="Enter your name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
+                            <input type="text" id="department" required 
+                                class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                placeholder="Enter your department">
+                        </div>
+                    </div>
+
+                    <!-- Date Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Date</label>
+                        <input type="date" id="reservationDate" required 
+                            class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    </div>
+
+                    <!-- Time Slots -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Time Slot</label>
+                        <div id="timeSlots" class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            <!-- Time slots will be generated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Purpose -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Purpose of Trip</label>
+                        <textarea id="purpose" required rows="3"
+                            class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="Brief description of your trip purpose"></textarea>
+                    </div>
+
+                    <button type="submit" 
+                        class="w-full bg-primary hover:bg-primary-hover text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center space-x-2">
+                        <span>🚗</span>
+                        <span>Reserve Car</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Current Reservations -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">📋 Current Reservations</h2>
+                    <button onclick="exportToExcel()" 
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center space-x-2">
+                        <span>📊</span>
+                        <span>Export to Excel</span>
+                    </button>
+                </div>
+                
+                <!-- Filter -->
+                <div class="mb-4">
+                    <select id="dateFilter" 
+                        class="w-full px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="all">All Dates</option>
+                        <option value="today">Today</option>
+                        <option value="tomorrow">Tomorrow</option>
+                        <option value="week">This Week</option>
+                    </select>
+                </div>
+
+                <div id="reservationsList" class="space-y-3 max-h-96 overflow-y-auto">
+                    <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                        No reservations yet. Make the first reservation!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+            <div class="text-center">
+                <div class="text-4xl mb-4">✅</div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Reservation Confirmed!</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Your car has been successfully reserved.</p>
+                <button onclick="closeModal()" 
+                    class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover transition duration-200">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+            <div class="text-center">
+                <div class="text-4xl mb-4">❌</div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Error</h3>
+                <p id="errorMessage" class="text-gray-600 dark:text-gray-400 mb-4"></p>
+                <button onclick="closeModal()" 
+                    class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition duration-200">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let reservations = [];
+        let selectedTimeSlot = null;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            generateTimeSlots();
+            setMinDate();
+            setupEventListeners();
+            updateStats();
+        });
+
+        function generateTimeSlots() {
+            const timeSlotsContainer = document.getElementById('timeSlots');
+            const timeSlots = [
+                '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
+                '14:00', '15:00', '16:00', '17:00', '18:00'
+            ];
+
+            timeSlotsContainer.innerHTML = '';
+            
+            timeSlots.forEach(time => {
+                const slot = document.createElement('div');
+                slot.className = 'time-slot p-3 border border-gray-300 dark:border-gray-600 rounded-lg text-center cursor-pointer hover:bg-primary hover:text-white hover:border-primary transition-all duration-200';
+                slot.textContent = time;
+                slot.onclick = () => selectTimeSlot(slot, time);
+                timeSlotsContainer.appendChild(slot);
+            });
+        }
+
+        function selectTimeSlot(element, time) {
+            // Remove previous selection
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('bg-primary', 'text-white', 'border-primary');
+                slot.classList.add('border-gray-300', 'dark:border-gray-600');
+            });
+
+            // Check availability for selected date and time
+            const selectedDate = document.getElementById('reservationDate').value;
+            if (selectedDate && isSlotUnavailable(selectedDate, time)) {
+                showError('This time slot is fully booked (3/3 cars reserved)');
+                return;
+            }
+
+            // Select new slot
+            element.classList.add('bg-primary', 'text-white', 'border-primary');
+            element.classList.remove('border-gray-300', 'dark:border-gray-600');
+            selectedTimeSlot = time;
+        }
+
+        function setMinDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reservationDate').min = today;
+            document.getElementById('reservationDate').value = today;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('reservationForm').addEventListener('submit', handleReservation);
+            document.getElementById('reservationDate').addEventListener('change', updateTimeSlotAvailability);
+            document.getElementById('dateFilter').addEventListener('change', filterReservations);
+        }
+
+        function updateTimeSlotAvailability() {
+            const selectedDate = document.getElementById('reservationDate').value;
+            const timeSlots = document.querySelectorAll('.time-slot');
+            
+            timeSlots.forEach(slot => {
+                const time = slot.textContent;
+                const bookings = getBookingsForSlot(selectedDate, time);
+                
+                // Reset classes
+                slot.classList.remove('unavailable', 'bg-primary', 'text-white', 'border-primary');
+                slot.classList.add('border-gray-300', 'dark:border-gray-600');
+                
+                if (bookings >= 3) {
+                    slot.classList.add('unavailable');
+                    slot.onclick = () => showError('This time slot is fully booked (3/3 cars reserved)');
+                } else {
+                    slot.onclick = () => selectTimeSlot(slot, time);
+                    // Add availability indicator
+                    if (bookings > 0) {
+                        slot.innerHTML = `${time}<br><small class="text-xs">${bookings}/3 booked</small>`;
+                    } else {
+                        slot.textContent = time;
+                    }
+                }
+            });
+            
+            selectedTimeSlot = null;
+        }
+
+        function getBookingsForSlot(date, time) {
+            return reservations.filter(r => r.date === date && r.time === time).length;
+        }
+
+        function isSlotUnavailable(date, time) {
+            return getBookingsForSlot(date, time) >= 3;
+        }
+
+        function handleReservation(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('employeeName').value.trim();
+            const department = document.getElementById('department').value.trim();
+            const date = document.getElementById('reservationDate').value;
+            const purpose = document.getElementById('purpose').value.trim();
+            
+            if (!selectedTimeSlot) {
+                showError('Please select a time slot');
+                return;
+            }
+            
+            if (isSlotUnavailable(date, selectedTimeSlot)) {
+                showError('This time slot is no longer available');
+                return;
+            }
+            
+            // Create reservation
+            const reservation = {
+                id: Date.now(),
+                name,
+                department,
+                date,
+                time: selectedTimeSlot,
+                purpose,
+                createdAt: new Date().toISOString()
+            };
+            
+            reservations.push(reservation);
+            
+            // Reset form
+            document.getElementById('reservationForm').reset();
+            selectedTimeSlot = null;
+            setMinDate();
+            generateTimeSlots();
+            
+            // Update displays
+            updateStats();
+            displayReservations();
+            showSuccess();
+        }
+
+        function displayReservations() {
+            const container = document.getElementById('reservationsList');
+            const filter = document.getElementById('dateFilter').value;
+            
+            let filteredReservations = [...reservations];
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+            const weekFromNow = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+            
+            switch(filter) {
+                case 'today':
+                    filteredReservations = reservations.filter(r => r.date === today);
+                    break;
+                case 'tomorrow':
+                    filteredReservations = reservations.filter(r => r.date === tomorrow);
+                    break;
+                case 'week':
+                    filteredReservations = reservations.filter(r => r.date >= today && r.date <= weekFromNow);
+                    break;
+            }
+            
+            // Sort by date and time
+            filteredReservations.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.time.localeCompare(b.time);
+            });
+            
+            if (filteredReservations.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8">No reservations found for the selected filter.</div>';
+                return;
+            }
+            
+            container.innerHTML = filteredReservations.map(reservation => `
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-semibold text-gray-900 dark:text-white">${reservation.name}</div>
+                        <button onclick="cancelReservation(${reservation.id})" 
+                            class="text-red-500 hover:text-red-700 text-sm">
+                            ❌ Cancel
+                        </button>
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                        <div>📅 ${formatDate(reservation.date)} at ${reservation.time}</div>
+                        <div>🏢 ${reservation.department}</div>
+                        <div>📝 ${reservation.purpose}</div>
+                        <div class="text-xs text-gray-500">
+                            ${getBookingsForSlot(reservation.date, reservation.time)}/3 cars booked for this slot
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function cancelReservation(id) {
+            reservations = reservations.filter(r => r.id !== id);
+            updateStats();
+            displayReservations();
+            updateTimeSlotAvailability();
+        }
+
+        function filterReservations() {
+            displayReservations();
+        }
+
+        function updateStats() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayReservations = reservations.filter(r => r.date === today).length;
+            
+            document.getElementById('totalReservations').textContent = reservations.length;
+            document.getElementById('todayReservations').textContent = todayReservations;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function showSuccess() {
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('successModal').classList.add('hidden');
+            document.getElementById('errorModal').classList.add('hidden');
+        }
+
+        function exportToExcel() {
+            if (reservations.length === 0) {
+                showError('No reservations to export');
+                return;
+            }
+
+            // Create Excel-compatible CSV content
+            const headers = [
+                'Reservation ID',
+                'Employee Name',
+                'Department', 
+                'Date',
+                'Time',
+                'Purpose',
+                'Created At',
+                'Cars Booked for Slot'
+            ];
+
+            // Sort reservations by date and time for export
+            const sortedReservations = [...reservations].sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.time.localeCompare(b.time);
+            });
+
+            const csvContent = [
+                headers.join(','),
+                ...sortedReservations.map(reservation => [
+                    reservation.id,
+                    `"${reservation.name}"`, // Wrap in quotes to handle commas
+                    `"${reservation.department}"`,
+                    reservation.date,
+                    reservation.time,
+                    `"${reservation.purpose.replace(/"/g, '""')}"`, // Escape quotes
+                    new Date(reservation.createdAt).toLocaleString(),
+                    `${getBookingsForSlot(reservation.date, reservation.time)}/3`
+                ].join(','))
+            ].join('\n');
+
+            // Add BOM for proper Excel encoding
+            const BOM = '\uFEFF';
+            const csvWithBOM = BOM + csvContent;
+
+            // Create download
+            const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            
+            // Generate filename with current date
+            const now = new Date();
+            const timestamp = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+            link.setAttribute('download', `car_reservations_${timestamp}.csv`);
+            
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Show success message
+            setTimeout(() => {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                successDiv.innerHTML = '✅ Reservations exported successfully!';
+                document.body.appendChild(successDiv);
+                
+                setTimeout(() => {
+                    document.body.removeChild(successDiv);
+                }, 3000);
+            }, 100);
+        }
+
+        // Initialize on page load
+        updateTimeSlotAvailability();
+        displayReservations();
+    </script>
+</body>
+</html>
